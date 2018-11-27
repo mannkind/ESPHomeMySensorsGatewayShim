@@ -96,8 +96,9 @@ void receive(const MyMessage &_message)
   // Default MySensors node handling
   const auto topic = protocolFormatMQTTTopic(MY_MQTT_PUBLISH_TOPIC_PREFIX, message);
   const auto msg = message.getString(_convBuffer);
+  const auto retain = mGetCommand(message) == C_SET;
 
-  mqtt::global_mqtt_client->publish(topic, msg, strlen(msg), 0, true);
+  mqtt::global_mqtt_client->publish(topic, msg, strlen(msg), 0, retain);
 
   // Custom MySensors node handling
   if (MySensorsCustomReceive)
