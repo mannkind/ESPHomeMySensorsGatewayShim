@@ -21,14 +21,24 @@ In short:
   * `#define MY_RF24_CS_PIN D4`
 
 * Add `#include "ESPHomeLibMySensorsGatewayShim.h"` under the `#defines`.
+* Add `MySensorsGatewayShim MSGS;` under the `#include`.
+* Add the following lines before `App.setup()`
 
-* Add the following lines before `App.setup()`, be sure to change the list of existing nodes to match your setup.
-
-  ```c++
-  const std::vector<uint8_t> existingNodes = {2, 15};
-  MySensorsGatewayShim(existingNodes);
-
-  App.setup();
-  ```
+  * `MSGS.setup();`
 
 * If you want to add a custom handler for received messages, use `void MySensorsCustomReceive(const MyMessage &message)`. See `example/src/ESPHomeLibMySensorsCustomReceive.h` for how I handle a few of my nodes.
+
+* If you use the MySensors Bootloader, add the following automation to Home Assistant.
+
+    ```yaml
+    - alias: "MySensors Bootloader Register"
+      id: mysensors_bootloader_register
+      trigger:
+        platform: mqtt
+        topic: "mysensors_rx/+/255/4/0/0"
+      action:
+        service: mqtt.publish
+        data_template:
+        topic: "mysensors_tx/register"
+        payload: "{{ trigger.topic.split('/').1 }}"
+    ```

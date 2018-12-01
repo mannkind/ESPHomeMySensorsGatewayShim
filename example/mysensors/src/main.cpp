@@ -12,6 +12,7 @@ using namespace esphomelib;
 
 #include "ESPHomeLibMySensorsGatewayShim.h"
 #include "ESPHomeLibMySensorsCustomReceive.h"
+MySensorsGatewayShim MSGS;
 
 void setup() {
   // ===== DO NOT EDIT ANYTHING BELOW THIS LINE =====
@@ -31,11 +32,7 @@ void setup() {
   App.init_mqtt("mosquitto.org", 1883, "", "");
   // =========== AUTO GENERATED CODE END ============
   // ========= YOU CAN EDIT AFTER THIS LINE =========
-
-  // Setup which nodes exist on your network
-  const std::vector<uint8_t> existingNodes = {2, 15};
-  MySensorsGatewayShim(existingNodes);
-
+  MSGS.setup();
   App.setup();
 }
 
