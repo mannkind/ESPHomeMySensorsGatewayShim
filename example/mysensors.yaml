@@ -1,15 +1,17 @@
 esphomeyaml:
   name: mysensors
   platform: ESP8266
-  arduino_version: 2.4.1
   board: esp12e
+  libraries:
+    - MySensors
+    - EEPROM
 
 wifi:
   ssid: "My Wifi SSID"
   password: "My Wifi Password"
 
 mqtt:
-  broker: "mosquitto.org"
+  broker: "test.mosquitto.org"
   discovery: true
 
 logger:

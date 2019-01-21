@@ -1,8 +1,4 @@
-// Auto generated code by esphomeyaml
-#include "esphomelib/application.h"
 #include <MySensors.h>
-
-using namespace esphomelib;
 
 // Function prototypes
 void MySensorsCustomReceive(const MyMessage &message) __attribute__((weak));
@@ -24,7 +20,7 @@ class MySensorsGatewayShim
     void MySensorsBootloaderRegister()
     {
         const auto topic = this->MySensorsBootloaderRegisterTopic();
-        const auto callback = [this](const std::string &payload) {
+        const auto callback = [this](const std::string &topic, const std::string &payload) {
             ESP_LOGD(TAG, "Received Register - Payload: %s", payload.c_str());
             const auto nodeId = atoi(payload.c_str());
 
@@ -55,8 +51,8 @@ class MySensorsGatewayShim
     void MySensorsBootloaderIDResponse()
     {
         const auto topic = this->MySensorsBootloaderIDResponseTopic();
-        const auto callback = [this](const std::string &payload) {
-            const auto topic = this->MySensorsBootloaderIDResponseTopic();
+        const auto callback = [this](const std::string &topic, const std::string &payload) {
+            //const auto topic = this->MySensorsBootloaderIDResponseTopic();
             const auto size = payload.length();
 
             ESP_LOGD(TAG, "Received ID Response - Topic: %s, Payload: %s", topic.c_str(), payload.c_str());
@@ -77,8 +73,8 @@ class MySensorsGatewayShim
         for (uint8_t typeId = 1; typeId < 4; typeId += 2)
         {
             const auto topic = this->MySensorsConfigurationFirmwareResponseTopic(nodeId, typeId);
-            const auto callback = [this, nodeId, typeId](const std::string &payload) {
-                const auto topic = this->MySensorsConfigurationFirmwareResponseTopic(nodeId, typeId);
+            const auto callback = [this, nodeId, typeId](const std::string &topic, const std::string &payload) {
+                //const auto topic = this->MySensorsConfigurationFirmwareResponseTopic(nodeId, typeId);
                 const auto size = payload.size();
 
                 ESP_LOGD(TAG, "Received CF Response - NodeID: %u; Topic: %s, Payload: %s", nodeId, topic.c_str(), payload.c_str());
