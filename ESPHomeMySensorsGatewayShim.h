@@ -142,15 +142,10 @@ void receive(const MyMessage &_message)
     char _buf[MAX_PAYLOAD * 2 + 1];
     const auto topic = protocolFormatMQTTTopic(MY_MQTT_PUBLISH_TOPIC_PREFIX, message);
     const auto msg = message.getString(_buf);
-    const auto retain = mGetCommand(message) == C_SET;
+    const auto retain = mGetCommand(message) == C_SET || 
+        (mGetCommand(message) == C_INTERNAL && message.type == I_BATTERY_LEVEL);
 
     mqtt::global_mqtt_client->publish(topic, msg, strlen(msg), 0, retain);
-
-    // Custom MySensors node handling
-    if (MySensorsCustomReceive)
-    {
-        MySensorsCustomReceive(message);
-    }
 }
 
 /* 
