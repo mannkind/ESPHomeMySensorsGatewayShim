@@ -1,3 +1,11 @@
+// CHANGE THESE TO SUIT YOUR GATEWAY
+#define MY_RADIO_RF24
+#define MY_RF24_CE_PIN D0
+#define MY_RF24_CS_PIN D4
+#define MY_GATEWAY_SERIAL
+#define MY_MQTT_PUBLISH_TOPIC_PREFIX "mysensors_rx"
+#define MY_MQTT_SUBSCRIBE_TOPIC_PREFIX "mysensors_tx"
+
 #include <MySensors.h>
 
 // Function prototypes
@@ -5,87 +13,61 @@ void MySensorsCustomReceive(const MyMessage &message) __attribute__((weak));
 bool protocolMQTTParse(MyMessage &message, const char *topic, const char *payload, unsigned int length);
 
 const char *TAG = "mysensors";
-class MySensorsGatewayShim
+class MySensorsGatewayShim : public Component, public CustomMQTTDevice
 {
   public:
-    void setup()
+    void setup() override
     {
-        this->MySensorsBootloaderRegister();
-        this->MySensorsBootloaderIDResponse(); 
+        this->subscribe(this->MySensorsBootloaderRegisterTopic(), &MySensorsGatewayShim::MySesnorsBootloaderRegisterCallback);
+        this->subscribe(this->MySensorsBootloaderIDResponseTopic(), &MySensorsGatewayShim::MySensorsBootloaderIDResponseCallback);
     }
 
-    /**
-     * Subscribe to node registration topic
-     */
-    void MySensorsBootloaderRegister()
+    void MySesnorsBootloaderRegisterCallback(const std::string &topic, const std::string &payload) 
     {
-        const auto topic = this->MySensorsBootloaderRegisterTopic();
-        const auto callback = [this](const std::string &topic, const std::string &payload) {
-            ESP_LOGD(TAG, "Received Register - Payload: %s", payload.c_str());
-            const auto nodeId = atoi(payload.c_str());
+        ESP_LOGD(TAG, "Received Register - Payload: %s", payload.c_str());
+        const auto nodeId = atoi(payload.c_str());
 
-            auto found = false;
-            for (auto i = 0; i < this->nodes.size(); i++) {
-                const auto knownId = this->nodes[i];
-                if (knownId == nodeId)
-                {
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found)
+        auto found = false;
+        for (auto i = 0; i < this->nodes.size(); i++) {
+            const auto knownId = this->nodes[i];
+            if (knownId == nodeId)
             {
-                ESP_LOGD(TAG, "New Register - Payload: %d", nodeId);
-                this->nodes.push_back(nodeId);
-                this->MySensorsBootloaderCFResponse(nodeId);
+                // Don't re-subscribe to the configuration/firmware topics
+                return;
             }
-        };
+        }
 
-        mqtt::global_mqtt_client->subscribe(topic, callback);
-    }
-
-    /**
-     * Subscribe to id responses
-     */
-    void MySensorsBootloaderIDResponse()
-    {
-        const auto topic = this->MySensorsBootloaderIDResponseTopic();
-        const auto callback = [this](const std::string &topic, const std::string &payload) {
-            //const auto topic = this->MySensorsBootloaderIDResponseTopic();
-            const auto size = payload.length();
-
-            ESP_LOGD(TAG, "Received ID Response - Topic: %s, Payload: %s", topic.c_str(), payload.c_str());
-
-            this->msg.clear();
-            protocolMQTTParse(msg, topic.c_str(), payload.c_str(), size);
-            transportRouteMessage(msg);
-        };
-
-        mqtt::global_mqtt_client->subscribe(topic, callback);
-    }
-
-    /**
-     * Subscribe to configuration/firmware responses
-     */
-    void MySensorsBootloaderCFResponse(const uint8_t nodeId)
-    {
+        ESP_LOGD(TAG, "New Register - Payload: %d", nodeId);
+        this->nodes.push_back(nodeId);
+        
         for (uint8_t typeId = 1; typeId < 4; typeId += 2)
         {
-            const auto topic = this->MySensorsConfigurationFirmwareResponseTopic(nodeId, typeId);
-            const auto callback = [this, nodeId, typeId](const std::string &topic, const std::string &payload) {
-                //const auto topic = this->MySensorsConfigurationFirmwareResponseTopic(nodeId, typeId);
-                const auto size = payload.size();
-
-                ESP_LOGD(TAG, "Received CF Response - NodeID: %u; Topic: %s, Payload: %s", nodeId, topic.c_str(), payload.c_str());
-
-                this->msg.clear();
-                protocolMQTTParse(msg, topic.c_str(), payload.c_str(), size);
-                transportRouteMessage(msg);
-            };
-
-            mqtt::global_mqtt_client->subscribe(topic, callback);
+            this->subscribe(this->MySensorsConfigurationFirmwareResponseTopic(nodeId, typeId), &MySensorsGatewayShim::MySensorsBootloaderCFResponseCallback);
         }
+    }
+
+    /**
+     * ID responses
+     */
+    void MySensorsBootloaderIDResponseCallback(const std::string &topic, const std::string &payload)
+    {
+        ESP_LOGD(TAG, "Received ID Response - Topic: %s, Payload: %s", topic.c_str(), payload.c_str());
+
+        MyMessage msg;
+        protocolMQTTParse(msg, topic.c_str(), payload.c_str(),  payload.length());
+        transportRouteMessage(msg);
+    }
+
+    /**
+     * Configuration/firmware responses
+     */
+    void MySensorsBootloaderCFResponseCallback(const std::string &topic, const std::string &payload)
+    {
+        ESP_LOGD(TAG, "Received CF Response - Topic: %s, Payload: %s", topic.c_str(), payload.c_str());
+
+        MyMessage msg;
+        protocolMQTTParse(msg, topic.c_str(), payload.c_str(), payload.length());
+        transportRouteMessage(msg);
     }
 
     /**
@@ -125,7 +107,6 @@ class MySensorsGatewayShim
     }
 
   protected:
-    MyMessage msg;
     std::vector<uint8_t> nodes;
 };
 
